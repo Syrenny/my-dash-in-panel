@@ -234,7 +234,7 @@ const DashPanel = GObject.registerClass(
                 Main.queueDeferredWork(this._workId);
         }
 
-        _destroy() {
+        destroy() {
             if (this._timeoutSeparator) {
                 GLib.Source.remove(this._timeoutSeparator);
                 this._timeoutSeparator = null;
@@ -271,17 +271,15 @@ const DashButton = GObject.registerClass(
                 this._timeoutDash = null;
                 return GLib.SOURCE_REMOVE;
             });
-
-            this.connectObject('destroy', this._destroy.bind(this), this);
         }
 
-        _destroy() {
+        destroy() {
             if (this._timeoutDash) {
                 GLib.Source.remove(this._timeoutDash);
                 this._timeoutDash = null;
             }
 
-            this._dash?._destroy();
+            this._dash?.destroy();
             super.destroy();
         }
     });
