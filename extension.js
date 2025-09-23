@@ -100,7 +100,7 @@ const DashPanel = GObject.registerClass(
 
             this._dashContainer.set_child_at_index(this.showAppsButton.get_parent(), 0);
 
-            this.showAppsButton.connectObject('clicked', this._onShowAppsClick.bind(this), this);
+            this.showAppsButton.connectObject('notify::checked', this._onShowAppsClick.bind(this), this);
         }
 
         _setDotsOpacity() {
@@ -224,7 +224,7 @@ const DashPanel = GObject.registerClass(
 
         _onShowAppsClick() {
             if (Main.overview.visible)
-                Main.overview.dash.showAppsButton.checked = !Main.overview.dash.showAppsButton.checked;
+                Main.overview.hide();
             else
                 Main.overview.showApps();
         }
