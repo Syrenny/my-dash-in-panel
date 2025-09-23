@@ -13,6 +13,11 @@
         <summary>Show dash in overview</summary>
     </key>
 
+    <key type="b" name="show-activities">
+        <default>false</default>
+        <summary>Show activities indicator</summary>
+    </key>
+
     <key type="b" name="move-date">
         <default>true</default>
         <summary>Move date menu to the right</summary>
