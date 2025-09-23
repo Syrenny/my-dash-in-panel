@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
   "description": "Dash in top panel.\n\n Does use native GNOME Shell dash object. Very light extension, 370 lines of code.\n\n Settings UI.",
-=======
-  "description": "Dash in top panel.\n\n Does use native GNOME Shell dash object. Very light extension, 370 lines of code.\n\n Some settings.",
->>>>>>> d2a1645 (Hide activities preference + GS 49)
   "name": "Dash in Panel",
   "shell-version": [
     "46",
