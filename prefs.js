@@ -36,7 +36,11 @@ export default class PowerProfilePreferences extends ExtensionPreferences {
             title: 'Show activities indicator',
         });
         groupGlobal.add(showActivities);
+<<<<<<< HEAD
         window._settings.bind('show-activities', showActivities, 'active', Gio.SettingsBindFlags.DEFAULT);
+=======
+        window._settings.bind('move-date', showActivities, 'active', Gio.SettingsBindFlags.DEFAULT);
+>>>>>>> d2a1645 (Hide activities preference + GS 49)
 
         const moveDate = new Adw.SwitchRow({
             title: 'Move date to the right',
@@ -54,7 +58,7 @@ export default class PowerProfilePreferences extends ExtensionPreferences {
 
         const groupPanel = new Adw.PreferencesGroup();
         page.add(groupPanel);
-        
+
         const hideActivitiesBt = new Adw.SwitchRow({
             title: 'Hide Activities button',
         });
