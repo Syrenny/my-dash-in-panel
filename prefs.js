@@ -2,7 +2,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
-import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 
 export default class PowerProfilePreferences extends ExtensionPreferences {
@@ -31,6 +31,12 @@ export default class PowerProfilePreferences extends ExtensionPreferences {
         });
         groupGlobal.add(showDash);
         window._settings.bind('show-dash', showDash, 'active', Gio.SettingsBindFlags.DEFAULT);
+
+        const showActivities = new Adw.SwitchRow({
+            title: 'Show activities indicator',
+        });
+        groupGlobal.add(showActivities);
+        window._settings.bind('show-activities', showActivities, 'active', Gio.SettingsBindFlags.DEFAULT);
 
         const moveDate = new Adw.SwitchRow({
             title: 'Move date to the right',
