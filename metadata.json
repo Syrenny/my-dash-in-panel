@@ -5,10 +5,14 @@
     "46",
     "47",
     "48",
-    "49"
+    "49",
+    "50"
   ],
   "url": "https://github.com/fthx/dash-in-panel",
   "uuid": "dash-in-panel@fthx",
   "settings-schema": "org.gnome.shell.extensions.dash-in-panel",
-  "version": 999
+  "version": 999,
+  "donations": {
+    "paypal": "fthx75"
+  }
 }
