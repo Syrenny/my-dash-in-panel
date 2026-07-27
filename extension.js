@@ -14,6 +14,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 
 const INACTIVE_WORKSPACE_DOT_OPACITY = 168;
+const DEFAULT_PANEL_HEIGHT = 32;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -50,9 +51,7 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            let scaleFactor = global.display.get_monitor_scale(global.display.get_primary_monitor());
-            item.child._dot.width = this.iconSize * scaleFactor;
-            item.child._dot.height += scaleFactor;
+            item.child._dot.width = this.iconSize;
             if (this._settings.get_boolean('colored-dot'))
                 item.child._dot.add_style_class_name('dash-in-panel-icon-colored-dot');
 
@@ -72,7 +71,7 @@ const DashPanel = GObject.registerClass(
                             return;
 
                         let yOffset = item.label.get_theme_node().get_length('-y-offset');
-                        item.label.y += 2 * item.label.height + 2 * yOffset + (Main.panel.height - 32) / scaleFactor;
+                        item.label.y += 2 * item.label.height + 2 * yOffset + (Main.panel.height - DEFAULT_PANEL_HEIGHT);
 
                         this._timeoutLabel = null;
                         return GLib.SOURCE_REMOVE;
@@ -135,10 +134,8 @@ const DashPanel = GObject.registerClass(
 
                     item.child?._dot?.set_opacity(255);
                 } else {
-                    if (this._settings.get_boolean('colored-dot'))
-                        item.child?.remove_style_class_name('dash-in-panel-colored-focused-app');
-                    else
-                        item.child?.remove_style_class_name('dash-in-panel-focused-app');
+                    item.child?.remove_style_class_name('dash-in-panel-colored-focused-app');
+                    item.child?.remove_style_class_name('dash-in-panel-focused-app');
                 }
             }
         }
@@ -149,6 +146,8 @@ const DashPanel = GObject.registerClass(
 
                 if (appDemandsAttention)
                     item.child?.add_style_class_name('dash-in-panel-demands-attention-app');
+                else
+                    item.child?.remove_style_class_name('dash-in-panel-demands-attention-app');
             }
         }
 
@@ -315,11 +314,14 @@ export default class DashInPanelExtension extends Extension {
         this.enable();
     }
 
+    _applyPanelGeometry() {
+        Main.panel.height = this._settings.get_int('panel-height');
+    }
+
     enable() {
         this._settings = this.getSettings();
 
-        let scaleFactor = global.display.get_monitor_scale(global.display.get_primary_monitor());
-        Main.panel.height = this._settings.get_int('panel-height') * scaleFactor;
+        this._applyPanelGeometry();
 
         if (this._settings.get_boolean('scroll-panel'))
             Main.panel.connectObject('scroll-event', (actor, event) => Main.wm.handleWorkspaceScroll(event), this);

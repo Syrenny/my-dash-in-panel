@@ -6,6 +6,7 @@
   border-left-width: 1px;
   border-right-width: 1px;
   border-radius: 6px;
+  background-color: transparent;
 
   transition-duration: 150ms;
 }
@@ -17,7 +18,7 @@
 
 .dash-in-panel-icon:hover,
 .dash-in-panel-show-apps-button:hover {
-  box-shadow: 0 0 0 rgba(142, 142, 142, 0.5);
+  background-color: rgba(142, 142, 142, 0.18);
 }
 
 .dash-in-panel-icon-colored-dot {
@@ -25,15 +26,18 @@
 }
 
 .dash-in-panel-focused-app {
-  box-shadow: 0 0 0 rgba(142, 142, 142, 0.5);
+  border-color: rgba(142, 142, 142, 0.55);
+  background-color: rgba(142, 142, 142, 0.16);
 }
 
 .dash-in-panel-colored-focused-app {
-  box-shadow: 0 0 0 st-transparentize(-st-accent-color, 0.5);
+  border-color: st-transparentize(-st-accent-color, 0.2);
+  background-color: st-transparentize(-st-accent-color, 0.82);
 }
 
 .dash-in-panel-demands-attention-app {
-  box-shadow: 0 0 0 st-transparentize(red, 0.3);
+  border-color: st-transparentize(red, 0.15);
+  background-color: st-transparentize(red, 0.84);
 }
 
 .dash-in-panel-separator {
