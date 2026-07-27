@@ -1,6 +1,6 @@
 {
-  "description": "Dash in top panel.\n\n Does use native GNOME Shell dash object. Very light extension, 370 lines of code.\n\n Settings UI.",
-  "name": "Dash in Panel",
+  "description": "Personal fork of fthx/dash-in-panel with adaptive panel sizing and app indicators.\n\nUses the native GNOME Shell dash object and provides a settings UI.",
+  "name": "Dash in Panel Adaptive",
   "shell-version": [
     "46",
     "47",
@@ -8,11 +8,8 @@
     "49",
     "50"
   ],
-  "url": "https://github.com/fthx/dash-in-panel",
-  "uuid": "dash-in-panel@fthx",
+  "url": "https://github.com/Syrenny/my-dash-in-panel",
+  "uuid": "dash-in-panel@syrenny",
   "settings-schema": "org.gnome.shell.extensions.dash-in-panel",
-  "version": 999,
-  "donations": {
-    "paypal": "fthx75"
-  }
+  "version": 2026072701
 }

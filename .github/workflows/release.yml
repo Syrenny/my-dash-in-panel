@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install GNOME extension tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gnome-shell libglib2.0-bin zip
+
+      - name: Derive CalVer metadata version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]{4})\.([0-9]{2})\.([0-9]{2})\.([0-9]+)$ ]]; then
+            echo "Tag must match vYYYY.MM.DD.N, got: $tag" >&2
+            exit 1
+          fi
+
+          suffix="${BASH_REMATCH[4]}"
+          printf -v suffix_padded '%02d' "$suffix"
+          version="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}${suffix_padded}"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version: $version"
+
+      - name: Update metadata version
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("metadata.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          data["version"] = int(os.environ["VERSION_NUMBER"])
+          path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          PY
+        env:
+          VERSION_NUMBER: ${{ steps.version.outputs.version }}
+
+      - name: Validate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m json.tool metadata.json >/dev/null
+          test "$(python3 -c 'import json; print(json.load(open("metadata.json"))["uuid"])')" = "dash-in-panel@syrenny"
+
+      - name: Pack extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          glib-compile-schemas schemas
+          gnome-extensions pack --force
+          test -f dash-in-panel@syrenny.shell-extension.zip
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/install.sh install.sh
+          chmod +x install.sh
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dash-in-panel@syrenny.shell-extension.zip
+            install.sh
+          generate_release_notes: true
