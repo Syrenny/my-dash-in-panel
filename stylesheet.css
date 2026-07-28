@@ -24,7 +24,6 @@
 .dash-in-panel-running-indicator,
 .dash-in-panel-icon-colored-dot {
   background-color: -st-accent-color;
-  border-radius: 99px;
 }
 
 .dash-in-panel-focused-app,

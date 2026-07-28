@@ -17,7 +17,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const INACTIVE_WORKSPACE_DOT_OPACITY = 168;
 const DEFAULT_PANEL_HEIGHT = 32;
-const RUNNING_INDICATOR_HEIGHT = 2;
+const RUNNING_INDICATOR_HEIGHT = 3;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -55,7 +55,6 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.width = this.iconSize;
             item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
             item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
 
