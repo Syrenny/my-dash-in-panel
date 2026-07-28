@@ -5,6 +5,7 @@
   border: 2px solid transparent;
   border-left-width: 1px;
   border-right-width: 1px;
+  border-bottom-width: 3px;
   border-radius: 6px;
   background-color: transparent;
 
@@ -21,9 +22,12 @@
   background-color: rgba(142, 142, 142, 0.18);
 }
 
-.dash-in-panel-running-indicator,
-.dash-in-panel-icon-colored-dot {
-  background-color: -st-accent-color;
+.dash-in-panel-running-app {
+  border-bottom-color: -st-accent-color;
+}
+
+.dash-in-panel-inactive-running-app {
+  border-bottom-color: st-transparentize(-st-accent-color, 0.34);
 }
 
 .dash-in-panel-focused-app,

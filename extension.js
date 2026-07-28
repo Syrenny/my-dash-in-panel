@@ -15,9 +15,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 
-const INACTIVE_WORKSPACE_DOT_OPACITY = 168;
 const DEFAULT_PANEL_HEIGHT = 32;
-const RUNNING_INDICATOR_HEIGHT = 3;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -55,8 +53,7 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
-            item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
+            item.child._dot.visible = false;
 
             this._timeoutSeparator = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._separator?.add_style_class_name('dash-in-panel-separator');
@@ -84,10 +81,8 @@ const DashPanel = GObject.registerClass(
             if (this._settings.get_boolean('click-changed'))
                 item.child.activate = (button) => this._onClicked(button, item);
 
-            if (this._settings.get_boolean('show-running')) {
-                this._setVisible(item);
-                item.child.app?.connectObject('notify::state', () => this._setVisible(item), this);
-            }
+            this._syncRunningIndicator(item);
+            item.child.app?.connectObject('notify::state', () => this._syncRunningIndicator(item), this);
         }
 
         _setShowAppsButton() {
@@ -122,18 +117,31 @@ const DashPanel = GObject.registerClass(
             let activeWorkspace = global.workspace_manager.get_active_workspace();
 
             for (let item of this._dashContainer.last_child?.get_children()) {
+                if (item.child?.app?.state !== Shell.AppState.RUNNING)
+                    continue;
+
                 let app_is_on_active_workspace = item.child?.app?.is_on_workspace(activeWorkspace);
 
                 if (app_is_on_active_workspace)
-                    item.child?._dot?.set_opacity(255);
+                    item.child?.remove_style_class_name('dash-in-panel-inactive-running-app');
                 else
-                    item.child?._dot?.set_opacity(INACTIVE_WORKSPACE_DOT_OPACITY);
+                    item.child?.add_style_class_name('dash-in-panel-inactive-running-app');
             }
         }
 
-        _setVisible(item) {
-            item.visible = item.child.app?.state == Shell.AppState.RUNNING;
+        _syncRunningIndicator(item) {
+            let appIsRunning = item.child.app?.state == Shell.AppState.RUNNING;
+
+            if (this._settings.get_boolean('show-running'))
+                item.visible = appIsRunning;
+
             item.child._dot.visible = false;
+            if (appIsRunning)
+                item.child.add_style_class_name('dash-in-panel-running-app');
+            else {
+                item.child.remove_style_class_name('dash-in-panel-running-app');
+                item.child.remove_style_class_name('dash-in-panel-inactive-running-app');
+            }
         }
 
         _onFocusWindowChanged() {
@@ -143,7 +151,7 @@ const DashPanel = GObject.registerClass(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
 
                 if (appHasFocus) {
-                    item.child?._dot?.set_opacity(255);
+                    item.child?.remove_style_class_name('dash-in-panel-inactive-running-app');
                 }
             }
         }
