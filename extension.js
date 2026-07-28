@@ -103,6 +103,8 @@ const DashPanel = GObject.registerClass(
                     icon_size: size,
                     style_class: 'dash-in-panel-show-apps-icon',
                 });
+                this._showAppsIcon.icon._iconBin?.destroy_all_children?.();
+                this._showAppsIcon.icon._iconBin?.add_child?.(this._showAppsIcon.icon._createIcon(this.iconSize));
             }
             this._showAppsIcon.icon.setIconSize(this.iconSize);
             this.showAppsButton.add_style_class_name('dash-in-panel-show-apps-button');

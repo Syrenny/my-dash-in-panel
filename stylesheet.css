@@ -22,22 +22,22 @@
   background-color: rgba(142, 142, 142, 0.18);
 }
 
-.dash-in-panel-running-app {
-  border-bottom-color: -st-accent-color;
-}
-
-.dash-in-panel-inactive-running-app {
-  border-bottom-color: st-transparentize(-st-accent-color, 0.34);
-}
-
 .dash-in-panel-focused-app,
 .dash-in-panel-colored-focused-app {
   border-color: transparent;
   background-color: transparent;
 }
 
+.dash-in-panel-running-app {
+  border-color: transparent transparent -st-accent-color transparent;
+}
+
+.dash-in-panel-inactive-running-app {
+  border-color: transparent transparent st-transparentize(-st-accent-color, 0.34) transparent;
+}
+
 .dash-in-panel-demands-attention-app {
-  border-bottom-color: st-transparentize(red, 0.15);
+  border-color: transparent transparent st-transparentize(red, 0.15) transparent;
   background-color: transparent;
 }
 
