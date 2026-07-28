@@ -68,6 +68,11 @@
         <summary>Colored running indicator</summary>
     </key>
 
+    <key type="s" name="indicator-color">
+        <default>'#E95420'</default>
+        <summary>Running indicator color</summary>
+    </key>
+
     <key type="i" name="button-margin">
         <default>2</default>
         <summary>App button margin</summary>

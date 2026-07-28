@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio';
+import Gdk from 'gi://Gdk';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
@@ -144,5 +145,22 @@ export default class PowerProfilePreferences extends ExtensionPreferences {
         });
         groupStyle.add(iconSize);
         window._settings.bind('icon-size', iconSize, 'value', Gio.SettingsBindFlags.DEFAULT);
+
+        const indicatorColor = new Adw.ActionRow({
+            title: 'Running indicator color',
+            subtitle: 'Default: Ubuntu Orange',
+        });
+        const colorButton = new Gtk.ColorButton({
+            valign: Gtk.Align.CENTER,
+        });
+        const rgba = new Gdk.RGBA();
+        rgba.parse(window._settings.get_string('indicator-color'));
+        colorButton.set_rgba(rgba);
+        colorButton.connect('color-set', () => {
+            window._settings.set_string('indicator-color', colorButton.get_rgba().to_string());
+        });
+        indicatorColor.add_suffix(colorButton);
+        indicatorColor.activatable_widget = colorButton;
+        groupStyle.add(indicatorColor);
     }
 }

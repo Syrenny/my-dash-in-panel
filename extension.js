@@ -20,17 +20,6 @@ const RUNNING_INDICATOR_HEIGHT = 3;
 const FOCUSED_INDICATOR_HEIGHT = 4;
 const RUNNING_INDICATOR_OPACITY = 168;
 const INACTIVE_WORKSPACE_INDICATOR_OPACITY = 96;
-const ACCENT_COLORS = {
-    blue: '#3584e4',
-    teal: '#2190a4',
-    green: '#3a944a',
-    yellow: '#c88800',
-    orange: '#ed5b00',
-    red: '#e62d42',
-    pink: '#d56199',
-    purple: '#9141ac',
-    slate: '#6f8396',
-};
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -39,8 +28,7 @@ const DashPanel = GObject.registerClass(
 
             this._settings = settings;
             this._extensionPath = extensionPath;
-            this._accentColor = ACCENT_COLORS.blue;
-            this._watchAccentColor();
+            this._indicatorColor = this._settings.get_string('indicator-color');
 
             this.remove_child(this._dashContainer);
 
@@ -154,28 +142,7 @@ const DashPanel = GObject.registerClass(
                 ? FOCUSED_INDICATOR_HEIGHT
                 : RUNNING_INDICATOR_HEIGHT;
             item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
-            item.child._dot.set_style(`background-color: ${this._accentColor};`);
-        }
-
-        _watchAccentColor() {
-            let schema = Gio.SettingsSchemaSource.get_default()?.lookup('org.gnome.desktop.interface', true);
-            if (!schema?.has_key('accent-color'))
-                return;
-
-            this._interfaceSettings = new Gio.Settings({settings_schema: schema});
-            this._interfaceSettings.connectObject('changed::accent-color', () => {
-                this._syncAccentColor();
-                this._onFocusWindowChanged();
-            }, this);
-            this._syncAccentColor();
-        }
-
-        _syncAccentColor() {
-            let accentName = this._interfaceSettings?.get_string('accent-color');
-            this._accentColor = ACCENT_COLORS[accentName] ?? ACCENT_COLORS.blue;
-
-            for (let item of this._dashContainer?.last_child?.get_children() ?? [])
-                item.child?._dot?.set_style(`background-color: ${this._accentColor};`);
+            item.child._dot.set_style(`background-color: ${this._indicatorColor};`);
         }
 
         _setDotsOpacity() {
