@@ -2,9 +2,11 @@
 
 
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
+import St from 'gi://St';
 
 import * as Dash from 'resource:///org/gnome/shell/ui/dash.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -15,14 +17,15 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const DEFAULT_PANEL_HEIGHT = 32;
 const RUNNING_INDICATOR_HEIGHT = 3;
-const DEBUG_LOG_ACTORS = true;
+const INACTIVE_WORKSPACE_INDICATOR_OPACITY = 168;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
-        _init(settings) {
+        _init(settings, extensionPath) {
             super._init();
 
             this._settings = settings;
+            this._extensionPath = extensionPath;
 
             this.remove_child(this._dashContainer);
 
@@ -41,9 +44,6 @@ const DashPanel = GObject.registerClass(
                 this._setDotsOpacity();
                 global.workspace_manager.connectObject('active-workspace-changed', this._setDotsOpacity.bind(this), this);
             }
-
-            if (DEBUG_LOG_ACTORS)
-                this._queueDebugLog();
         }
 
         _setStyle(item) {
@@ -55,8 +55,8 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
-            item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
+            item.child._dot.visible = false;
+            this._ensureRunningIndicator(item);
 
             this._timeoutSeparator = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._separator?.add_style_class_name('dash-in-panel-separator');
@@ -84,74 +84,8 @@ const DashPanel = GObject.registerClass(
             if (this._settings.get_boolean('click-changed'))
                 item.child.activate = (button) => this._onClicked(button, item);
 
-            if (this._settings.get_boolean('show-running')) {
-                this._setVisible(item);
-                item.child.app?.connectObject('notify::state', () => this._setVisible(item), this);
-            }
-        }
-
-        _queueDebugLog() {
-            this._timeoutDebugLog = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
-                this._logActorDebug();
-
-                this._timeoutDebugLog = null;
-                return GLib.SOURCE_REMOVE;
-            });
-        }
-
-        _describeActor(actor) {
-            if (!actor)
-                return '<null>';
-
-            let name = actor.constructor?.name ?? '<unknown>';
-            let styleClass = actor.get_style_class_name?.() ?? '';
-            let visible = actor.visible;
-            let width = actor.width;
-            let height = actor.height;
-            let children = actor.get_children?.().length ?? 0;
-
-            return `${name} visible=${visible} size=${width}x${height} style="${styleClass}" children=${children}`;
-        }
-
-        _logActorTree(label, actor, depth = 0, maxDepth = 4) {
-            log(`dash-in-panel-debug ${'  '.repeat(depth)}${label}: ${this._describeActor(actor)}`);
-
-            if (!actor?.get_children || depth >= maxDepth)
-                return;
-
-            let children = actor.get_children();
-            for (let index = 0; index < children.length; index++)
-                this._logActorTree(`child[${index}]`, children[index], depth + 1, maxDepth);
-        }
-
-        _logObjectKeys(label, object) {
-            let keys = Object.keys(object ?? {}).sort().join(', ');
-            log(`dash-in-panel-debug ${label} keys: ${keys}`);
-        }
-
-        _logActorDebug() {
-            log('dash-in-panel-debug begin');
-            this._logObjectKeys('showAppsButton', this.showAppsButton);
-            this._logObjectKeys('_showAppsIcon', this._showAppsIcon);
-            this._logObjectKeys('_showAppsIcon.icon', this._showAppsIcon?.icon);
-            this._logActorTree('showAppsButton', this.showAppsButton);
-            this._logActorTree('_showAppsIcon', this._showAppsIcon);
-            this._logActorTree('_showAppsIcon.icon', this._showAppsIcon?.icon);
-
-            let items = this._dashContainer.last_child?.get_children?.() ?? [];
-            log(`dash-in-panel-debug dash items=${items.length}`);
-
-            for (let index = 0; index < Math.min(items.length, 3); index++) {
-                let item = items[index];
-                let appId = item.child?.app?.get_id?.() ?? '<no-app>';
-                log(`dash-in-panel-debug item[${index}] app=${appId}`);
-                this._logObjectKeys(`item[${index}]`, item);
-                this._logObjectKeys(`item[${index}].child`, item.child);
-                this._logActorTree(`item[${index}]`, item, 0, 4);
-                this._logActorTree(`item[${index}].child._dot`, item.child?._dot, 0, 2);
-            }
-
-            log('dash-in-panel-debug end');
+            this._syncRunningIndicator(item);
+            item.child.app?.connectObject('notify::state', () => this._syncRunningIndicator(item), this);
         }
 
         _setShowAppsButton() {
@@ -160,13 +94,63 @@ const DashPanel = GObject.registerClass(
                 return;
             }
 
+            this._setShowAppsIcon();
             this._showAppsIcon.icon.setIconSize(this.iconSize);
+            this._setShowAppsIcon();
             this.showAppsButton.add_style_class_name('dash-in-panel-show-apps-button');
             this.showAppsButton.track_hover = true;
 
             this._dashContainer.set_child_at_index(this.showAppsButton.get_parent(), 0);
 
             this.showAppsButton.connectObject('notify::checked', this._onShowAppsClick.bind(this), this);
+        }
+
+        _setShowAppsIcon() {
+            if (!this._extensionPath || !this._showAppsIcon?.icon?._iconBin)
+                return;
+
+            let iconFile = Gio.File.new_for_path(GLib.build_filenamev([
+                this._extensionPath,
+                'assets',
+                'ubuntu-logo-symbolic.svg',
+            ]));
+            let gicon = Gio.FileIcon.new(iconFile);
+
+            this._showAppsIcon.icon.createIcon = size => new St.Icon({
+                gicon,
+                icon_size: size,
+                style_class: 'dash-in-panel-show-apps-icon',
+            });
+            this._showAppsIcon.icon._iconBin.destroy_all_children();
+            this._showAppsIcon.icon._iconBin.add_child(this._showAppsIcon.icon.createIcon(this.iconSize));
+        }
+
+        _ensureRunningIndicator(item) {
+            if (item._dashInPanelIndicator)
+                return;
+
+            let indicator = new St.Widget({
+                style_class: 'dash-in-panel-running-indicator',
+                reactive: false,
+                visible: false,
+            });
+
+            item.add_child(indicator);
+            indicator.raise_top();
+            item._dashInPanelIndicator = indicator;
+
+            item.child.connectObject('notify::allocation', () => this._syncRunningIndicatorGeometry(item), this);
+            this._syncRunningIndicatorGeometry(item);
+        }
+
+        _syncRunningIndicatorGeometry(item) {
+            let indicator = item._dashInPanelIndicator;
+            if (!indicator)
+                return;
+
+            let [x, y] = item.child.get_position();
+            indicator.set_position(x, y + item.child.height - RUNNING_INDICATOR_HEIGHT);
+            indicator.set_size(item.child.width, RUNNING_INDICATOR_HEIGHT);
         }
 
         _setDotsOpacity() {
@@ -179,15 +163,23 @@ const DashPanel = GObject.registerClass(
                 let app_is_on_active_workspace = item.child?.app?.is_on_workspace(activeWorkspace);
 
                 if (app_is_on_active_workspace)
-                    item.child?._dot?.set_opacity(255);
+                    item._dashInPanelIndicator?.set_opacity(255);
                 else
-                    item.child?._dot?.set_opacity(168);
+                    item._dashInPanelIndicator?.set_opacity(INACTIVE_WORKSPACE_INDICATOR_OPACITY);
             }
         }
 
-        _setVisible(item) {
-            item.visible = item.child.app?.state == Shell.AppState.RUNNING;
+        _syncRunningIndicator(item) {
+            let appIsRunning = item.child.app?.state == Shell.AppState.RUNNING;
+
+            if (this._settings.get_boolean('show-running'))
+                item.visible = appIsRunning;
+
             item.child._dot.visible = false;
+            if (appIsRunning)
+                item._dashInPanelIndicator?.show();
+            else
+                item._dashInPanelIndicator?.hide();
         }
 
         _onFocusWindowChanged() {
@@ -197,7 +189,7 @@ const DashPanel = GObject.registerClass(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
 
                 if (appHasFocus) {
-                    item.child?._dot?.set_opacity(255);
+                    item._dashInPanelIndicator?.set_opacity(255);
                 }
             }
         }
@@ -306,11 +298,6 @@ const DashPanel = GObject.registerClass(
                 this._timeoutLabel = null;
             }
 
-            if (this._timeoutDebugLog) {
-                GLib.Source.remove(this._timeoutDebugLog);
-                this._timeoutDebugLog = null;
-            }
-
             global.display.disconnectObject(this);
             global.workspace_manager.disconnectObject(this);
             this._box?.disconnectObject(this);
@@ -323,15 +310,16 @@ const DashPanel = GObject.registerClass(
 
 const DashButton = GObject.registerClass(
     class DashButton extends PanelMenu.Button {
-        _init(settings) {
+        _init(settings, extensionPath) {
             super._init();
 
             this._settings = settings;
+            this._extensionPath = extensionPath;
 
             this.reactive = false;
 
             this._timeoutDash = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-                this._dash = new DashPanel(this._settings);
+                this._dash = new DashPanel(this._settings, this._extensionPath);
                 this.add_child(this._dash._dashContainer);
 
                 this._timeoutDash = null;
@@ -404,7 +392,7 @@ export default class DashInPanelExtension extends Extension {
         if (!this._settings.get_boolean('show-overview') && Main.layoutManager._startingUp)
             Main.layoutManager.connectObject('startup-complete', () => Main.overview.hide(), this);
 
-        this._dashButton = new DashButton(this._settings);
+        this._dashButton = new DashButton(this._settings, this.path);
         if (this._settings.get_boolean('center-dash'))
             Main.panel.addToStatusArea('dash', this._dashButton, -1, 'center');
         else

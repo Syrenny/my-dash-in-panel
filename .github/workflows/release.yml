@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
           glib-compile-schemas schemas
-          gnome-extensions pack --force
+          gnome-extensions pack --force --extra-source=assets/ubuntu-logo-symbolic.svg
           test -f dash-in-panel@syrenny.shell-extension.zip
 
       - name: Prepare release assets
