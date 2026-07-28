@@ -55,8 +55,8 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.visible = false;
-            this._ensureRunningIndicator(item);
+            this._syncRunningIndicatorGeometry(item);
+            item.child.connectObject('notify::allocation', () => this._syncRunningIndicatorGeometry(item), this);
 
             this._timeoutSeparator = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._separator?.add_style_class_name('dash-in-panel-separator');
@@ -106,7 +106,7 @@ const DashPanel = GObject.registerClass(
         }
 
         _setShowAppsIcon() {
-            if (!this._extensionPath || !this._showAppsIcon?.icon?._iconBin)
+            if (!this._extensionPath || !this._showAppsIcon?.icon)
                 return;
 
             let iconFile = Gio.File.new_for_path(GLib.build_filenamev([
@@ -121,36 +121,22 @@ const DashPanel = GObject.registerClass(
                 icon_size: size,
                 style_class: 'dash-in-panel-show-apps-icon',
             });
-            this._showAppsIcon.icon._iconBin.destroy_all_children();
-            this._showAppsIcon.icon._iconBin.add_child(this._showAppsIcon.icon.createIcon(this.iconSize));
-        }
-
-        _ensureRunningIndicator(item) {
-            if (item._dashInPanelIndicator)
-                return;
-
-            let indicator = new St.Widget({
-                style_class: 'dash-in-panel-running-indicator',
-                reactive: false,
-                visible: false,
-            });
-
-            item.add_child(indicator);
-            indicator.raise_top();
-            item._dashInPanelIndicator = indicator;
-
-            item.child.connectObject('notify::allocation', () => this._syncRunningIndicatorGeometry(item), this);
-            this._syncRunningIndicatorGeometry(item);
+            if (this._showAppsIcon.icon.icon) {
+                this._showAppsIcon.icon.icon.gicon = gicon;
+                this._showAppsIcon.icon.icon.icon_size = this.iconSize;
+                this._showAppsIcon.icon.icon.add_style_class_name('dash-in-panel-show-apps-icon');
+            }
+            this._showAppsIcon.icon._iconBin?.destroy_all_children?.();
+            this._showAppsIcon.icon._iconBin?.add_child?.(this._showAppsIcon.icon.createIcon(this.iconSize));
         }
 
         _syncRunningIndicatorGeometry(item) {
-            let indicator = item._dashInPanelIndicator;
-            if (!indicator)
+            if (!item.child?._dot)
                 return;
 
-            let [x, y] = item.child.get_position();
-            indicator.set_position(x, y + item.child.height - RUNNING_INDICATOR_HEIGHT);
-            indicator.set_size(item.child.width, RUNNING_INDICATOR_HEIGHT);
+            item.child._dot.width = item.child.width;
+            item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
+            item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
         }
 
         _setDotsOpacity() {
@@ -163,9 +149,9 @@ const DashPanel = GObject.registerClass(
                 let app_is_on_active_workspace = item.child?.app?.is_on_workspace(activeWorkspace);
 
                 if (app_is_on_active_workspace)
-                    item._dashInPanelIndicator?.set_opacity(255);
+                    item.child?._dot?.set_opacity(255);
                 else
-                    item._dashInPanelIndicator?.set_opacity(INACTIVE_WORKSPACE_INDICATOR_OPACITY);
+                    item.child?._dot?.set_opacity(INACTIVE_WORKSPACE_INDICATOR_OPACITY);
             }
         }
 
@@ -175,11 +161,8 @@ const DashPanel = GObject.registerClass(
             if (this._settings.get_boolean('show-running'))
                 item.visible = appIsRunning;
 
-            item.child._dot.visible = false;
-            if (appIsRunning)
-                item._dashInPanelIndicator?.show();
-            else
-                item._dashInPanelIndicator?.hide();
+            this._syncRunningIndicatorGeometry(item);
+            item.child._dot.visible = appIsRunning;
         }
 
         _onFocusWindowChanged() {
@@ -189,7 +172,7 @@ const DashPanel = GObject.registerClass(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
 
                 if (appHasFocus) {
-                    item._dashInPanelIndicator?.set_opacity(255);
+                    item.child?._dot?.set_opacity(255);
                 }
             }
         }
