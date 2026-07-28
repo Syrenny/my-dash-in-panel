@@ -134,7 +134,7 @@ const DashPanel = GObject.registerClass(
             if (!item.child?._dot)
                 return;
 
-            item.child._dot.width = item.child.width;
+            item.child._dot.width = item.child.icon?.width || this.iconSize;
             item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
             item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
         }
