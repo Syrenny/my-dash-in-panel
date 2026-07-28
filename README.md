@@ -24,4 +24,4 @@ Open the extension settings with:
 gnome-extensions prefs dash-in-panel@syrenny
 ```
 
-Based on [fthx/dash-in-panel](https://github.com/fthx/dash-in-panel). Licensed under GPL-3.0.
+Based on [fthx/dash-in-panel](https://github.com/fthx/dash-in-panel).
