@@ -15,6 +15,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const DEFAULT_PANEL_HEIGHT = 32;
 const RUNNING_INDICATOR_HEIGHT = 3;
+const DEBUG_LOG_ACTORS = true;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -40,6 +41,9 @@ const DashPanel = GObject.registerClass(
                 this._setDotsOpacity();
                 global.workspace_manager.connectObject('active-workspace-changed', this._setDotsOpacity.bind(this), this);
             }
+
+            if (DEBUG_LOG_ACTORS)
+                this._queueDebugLog();
         }
 
         _setStyle(item) {
@@ -84,6 +88,70 @@ const DashPanel = GObject.registerClass(
                 this._setVisible(item);
                 item.child.app?.connectObject('notify::state', () => this._setVisible(item), this);
             }
+        }
+
+        _queueDebugLog() {
+            this._timeoutDebugLog = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1500, () => {
+                this._logActorDebug();
+
+                this._timeoutDebugLog = null;
+                return GLib.SOURCE_REMOVE;
+            });
+        }
+
+        _describeActor(actor) {
+            if (!actor)
+                return '<null>';
+
+            let name = actor.constructor?.name ?? '<unknown>';
+            let styleClass = actor.get_style_class_name?.() ?? '';
+            let visible = actor.visible;
+            let width = actor.width;
+            let height = actor.height;
+            let children = actor.get_children?.().length ?? 0;
+
+            return `${name} visible=${visible} size=${width}x${height} style="${styleClass}" children=${children}`;
+        }
+
+        _logActorTree(label, actor, depth = 0, maxDepth = 4) {
+            log(`dash-in-panel-debug ${'  '.repeat(depth)}${label}: ${this._describeActor(actor)}`);
+
+            if (!actor?.get_children || depth >= maxDepth)
+                return;
+
+            let children = actor.get_children();
+            for (let index = 0; index < children.length; index++)
+                this._logActorTree(`child[${index}]`, children[index], depth + 1, maxDepth);
+        }
+
+        _logObjectKeys(label, object) {
+            let keys = Object.keys(object ?? {}).sort().join(', ');
+            log(`dash-in-panel-debug ${label} keys: ${keys}`);
+        }
+
+        _logActorDebug() {
+            log('dash-in-panel-debug begin');
+            this._logObjectKeys('showAppsButton', this.showAppsButton);
+            this._logObjectKeys('_showAppsIcon', this._showAppsIcon);
+            this._logObjectKeys('_showAppsIcon.icon', this._showAppsIcon?.icon);
+            this._logActorTree('showAppsButton', this.showAppsButton);
+            this._logActorTree('_showAppsIcon', this._showAppsIcon);
+            this._logActorTree('_showAppsIcon.icon', this._showAppsIcon?.icon);
+
+            let items = this._dashContainer.last_child?.get_children?.() ?? [];
+            log(`dash-in-panel-debug dash items=${items.length}`);
+
+            for (let index = 0; index < Math.min(items.length, 3); index++) {
+                let item = items[index];
+                let appId = item.child?.app?.get_id?.() ?? '<no-app>';
+                log(`dash-in-panel-debug item[${index}] app=${appId}`);
+                this._logObjectKeys(`item[${index}]`, item);
+                this._logObjectKeys(`item[${index}].child`, item.child);
+                this._logActorTree(`item[${index}]`, item, 0, 4);
+                this._logActorTree(`item[${index}].child._dot`, item.child?._dot, 0, 2);
+            }
+
+            log('dash-in-panel-debug end');
         }
 
         _setShowAppsButton() {
@@ -236,6 +304,11 @@ const DashPanel = GObject.registerClass(
             if (this._timeoutLabel) {
                 GLib.Source.remove(this._timeoutLabel);
                 this._timeoutLabel = null;
+            }
+
+            if (this._timeoutDebugLog) {
+                GLib.Source.remove(this._timeoutDebugLog);
+                this._timeoutDebugLog = null;
             }
 
             global.display.disconnectObject(this);
