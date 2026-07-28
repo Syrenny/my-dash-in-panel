@@ -2,9 +2,11 @@
 
 
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Shell from 'gi://Shell';
+import St from 'gi://St';
 
 import * as Dash from 'resource:///org/gnome/shell/ui/dash.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -19,10 +21,11 @@ const RUNNING_INDICATOR_HEIGHT = 2;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
-        _init(settings) {
+        _init(settings, extensionPath) {
             super._init();
 
             this._settings = settings;
+            this._extensionPath = extensionPath;
 
             this.remove_child(this._dashContainer);
 
@@ -94,6 +97,19 @@ const DashPanel = GObject.registerClass(
                 return;
             }
 
+            if (this._extensionPath) {
+                let iconFile = Gio.File.new_for_path(GLib.build_filenamev([
+                    this._extensionPath,
+                    'assets',
+                    'ubuntu-logo-symbolic.svg',
+                ]));
+                let gicon = Gio.FileIcon.new(iconFile);
+                this._showAppsIcon.icon._createIcon = size => new St.Icon({
+                    gicon,
+                    icon_size: size,
+                    style_class: 'dash-in-panel-show-apps-icon',
+                });
+            }
             this._showAppsIcon.icon.setIconSize(this.iconSize);
             this.showAppsButton.add_style_class_name('dash-in-panel-show-apps-button');
             this.showAppsButton.track_hover = true;
@@ -249,15 +265,16 @@ const DashPanel = GObject.registerClass(
 
 const DashButton = GObject.registerClass(
     class DashButton extends PanelMenu.Button {
-        _init(settings) {
+        _init(settings, extensionPath) {
             super._init();
 
             this._settings = settings;
+            this._extensionPath = extensionPath;
 
             this.reactive = false;
 
             this._timeoutDash = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-                this._dash = new DashPanel(this._settings);
+                this._dash = new DashPanel(this._settings, this._extensionPath);
                 this.add_child(this._dash._dashContainer);
 
                 this._timeoutDash = null;
@@ -330,7 +347,7 @@ export default class DashInPanelExtension extends Extension {
         if (!this._settings.get_boolean('show-overview') && Main.layoutManager._startingUp)
             Main.layoutManager.connectObject('startup-complete', () => Main.overview.hide(), this);
 
-        this._dashButton = new DashButton(this._settings);
+        this._dashButton = new DashButton(this._settings, this.path);
         if (this._settings.get_boolean('center-dash'))
             Main.panel.addToStatusArea('dash', this._dashButton, -1, 'center');
         else
