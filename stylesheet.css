@@ -16,6 +16,14 @@
   margin-left: 0px;
 }
 
+.dash-in-panel-show-apps-button .overview-icon,
+.dash-in-panel-show-apps-button:hover .overview-icon,
+.dash-in-panel-show-apps-button:focus .overview-icon,
+.dash-in-panel-show-apps-button:checked .overview-icon {
+  background-color: transparent;
+  box-shadow: none;
+}
+
 .dash-in-panel-icon:hover,
 .dash-in-panel-show-apps-button:hover {
   background-color: rgba(142, 142, 142, 0.18);
