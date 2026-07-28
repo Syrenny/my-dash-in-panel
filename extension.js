@@ -52,7 +52,7 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.width = Math.max(10, this.iconSize - 4);
+            item.child._dot.width = this.iconSize;
             item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
             item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
 
