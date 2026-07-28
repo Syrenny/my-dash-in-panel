@@ -27,12 +27,9 @@
   background-color: transparent;
 }
 
-.dash-in-panel-running-indicator {
+.dash-in-panel-running-indicator,
+.dash-in-panel-icon-colored-dot {
   background-color: -st-accent-color;
-}
-
-.dash-in-panel-inactive-running-indicator {
-  background-color: st-transparentize(-st-accent-color, 0.34);
 }
 
 .dash-in-panel-demands-attention-app {
