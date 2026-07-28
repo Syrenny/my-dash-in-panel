@@ -103,13 +103,6 @@ export default class PowerProfilePreferences extends ExtensionPreferences {
         const groupStyle = new Adw.PreferencesGroup();
         page.add(groupStyle);
 
-        const coloredDot = new Adw.SwitchRow({
-            title: 'Colored running app indicator',
-            subtitle: 'Accent color is used',
-        });
-        groupStyle.add(coloredDot);
-        window._settings.bind('colored-dot', coloredDot, 'active', Gio.SettingsBindFlags.DEFAULT);
-
         const adjustmentButtonMargin = new Gtk.Adjustment({
             lower: 0,
             upper: 20,

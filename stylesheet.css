@@ -21,23 +21,21 @@
   background-color: rgba(142, 142, 142, 0.18);
 }
 
+.dash-in-panel-running-indicator,
 .dash-in-panel-icon-colored-dot {
   background-color: -st-accent-color;
+  border-radius: 99px;
 }
 
-.dash-in-panel-focused-app {
-  border-color: rgba(142, 142, 142, 0.55);
-  background-color: rgba(142, 142, 142, 0.16);
-}
-
+.dash-in-panel-focused-app,
 .dash-in-panel-colored-focused-app {
-  border-color: st-transparentize(-st-accent-color, 0.2);
-  background-color: st-transparentize(-st-accent-color, 0.82);
+  border-color: transparent;
+  background-color: transparent;
 }
 
 .dash-in-panel-demands-attention-app {
-  border-color: st-transparentize(red, 0.15);
-  background-color: st-transparentize(red, 0.84);
+  border-bottom-color: st-transparentize(red, 0.15);
+  background-color: transparent;
 }
 
 .dash-in-panel-separator {

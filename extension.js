@@ -15,6 +15,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const INACTIVE_WORKSPACE_DOT_OPACITY = 168;
 const DEFAULT_PANEL_HEIGHT = 32;
+const RUNNING_INDICATOR_HEIGHT = 2;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -51,9 +52,9 @@ const DashPanel = GObject.registerClass(
             let margin = this._settings.get_int('button-margin');
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
-            item.child._dot.width = this.iconSize;
-            if (this._settings.get_boolean('colored-dot'))
-                item.child._dot.add_style_class_name('dash-in-panel-icon-colored-dot');
+            item.child._dot.width = Math.max(10, this.iconSize - 4);
+            item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
+            item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
 
             this._timeoutSeparator = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._separator?.add_style_class_name('dash-in-panel-separator');
@@ -127,15 +128,7 @@ const DashPanel = GObject.registerClass(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
 
                 if (appHasFocus) {
-                    if (this._settings.get_boolean('colored-dot'))
-                        item.child?.add_style_class_name('dash-in-panel-colored-focused-app');
-                    else
-                        item.child?.add_style_class_name('dash-in-panel-focused-app');
-
                     item.child?._dot?.set_opacity(255);
-                } else {
-                    item.child?.remove_style_class_name('dash-in-panel-colored-focused-app');
-                    item.child?.remove_style_class_name('dash-in-panel-focused-app');
                 }
             }
         }

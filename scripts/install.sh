@@ -48,11 +48,26 @@ printf 'Installing %s\n' "$UUID"
 gnome-extensions install --force "$zip_path"
 
 printf 'Enabling %s\n' "$UUID"
-gnome-extensions enable "$UUID"
+if gnome-extensions enable "$UUID"; then
+  enabled="yes"
+else
+  enabled="no"
+fi
 
-cat <<EOF
-Installed ${UUID}.
+if [[ "$enabled" == "yes" ]]; then
+  cat <<EOF
+Installed and enabled ${UUID}.
 
 If changes are not visible immediately, restart GNOME Shell or log out and log back in.
 On X11, press Alt+F2, type r, and press Enter. On Wayland, log out and log back in.
 EOF
+else
+  cat <<EOF
+Installed ${UUID}, but the current GNOME Shell session did not enable it immediately.
+
+Restart GNOME Shell or log out and log back in, then run:
+  gnome-extensions enable ${UUID}
+
+On X11, press Alt+F2, type r, and press Enter. On Wayland, log out and log back in.
+EOF
+fi
