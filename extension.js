@@ -16,6 +16,7 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 
 const DEFAULT_PANEL_HEIGHT = 32;
+const RUNNING_INDICATOR_HEIGHT = 3;
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -54,6 +55,7 @@ const DashPanel = GObject.registerClass(
             item.child.set_style(`margin-left: ${margin}px; margin-right: ${margin}px;`);
 
             item.child._dot.visible = false;
+            this._ensureRunningIndicator(item);
 
             this._timeoutSeparator = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
                 this._separator?.add_style_class_name('dash-in-panel-separator');
@@ -91,28 +93,62 @@ const DashPanel = GObject.registerClass(
                 return;
             }
 
-            if (this._extensionPath) {
-                let iconFile = Gio.File.new_for_path(GLib.build_filenamev([
-                    this._extensionPath,
-                    'assets',
-                    'ubuntu-logo-symbolic.svg',
-                ]));
-                let gicon = Gio.FileIcon.new(iconFile);
-                this._showAppsIcon.icon._createIcon = size => new St.Icon({
-                    gicon,
-                    icon_size: size,
-                    style_class: 'dash-in-panel-show-apps-icon',
-                });
-                this._showAppsIcon.icon._iconBin?.destroy_all_children?.();
-                this._showAppsIcon.icon._iconBin?.add_child?.(this._showAppsIcon.icon._createIcon(this.iconSize));
-            }
+            this._setShowAppsIcon();
             this._showAppsIcon.icon.setIconSize(this.iconSize);
+            this._setShowAppsIcon();
             this.showAppsButton.add_style_class_name('dash-in-panel-show-apps-button');
             this.showAppsButton.track_hover = true;
 
             this._dashContainer.set_child_at_index(this.showAppsButton.get_parent(), 0);
 
             this.showAppsButton.connectObject('notify::checked', this._onShowAppsClick.bind(this), this);
+        }
+
+        _setShowAppsIcon() {
+            if (!this._extensionPath)
+                return;
+
+            let iconFile = Gio.File.new_for_path(GLib.build_filenamev([
+                this._extensionPath,
+                'assets',
+                'ubuntu-logo-symbolic.svg',
+            ]));
+            let gicon = Gio.FileIcon.new(iconFile);
+            let icon = new St.Icon({
+                gicon,
+                icon_size: this.iconSize,
+                style_class: 'dash-in-panel-show-apps-icon',
+            });
+
+            this._showAppsIcon.icon._createIcon = size => new St.Icon({
+                gicon,
+                icon_size: size,
+                style_class: 'dash-in-panel-show-apps-icon',
+            });
+            this._showAppsIcon.icon._iconBin?.destroy_all_children?.();
+            this._showAppsIcon.icon._iconBin?.add_child?.(icon);
+        }
+
+        _ensureRunningIndicator(item) {
+            if (item.child._dashInPanelIndicator)
+                return;
+
+            let indicator = new St.Widget({
+                style_class: 'dash-in-panel-running-indicator',
+                reactive: false,
+                visible: false,
+                height: RUNNING_INDICATOR_HEIGHT,
+                x_expand: true,
+                x_align: Clutter.ActorAlign.FILL,
+                y_align: Clutter.ActorAlign.END,
+            });
+            indicator.add_constraint(new Clutter.BindConstraint({
+                source: item.child,
+                coordinate: Clutter.BindCoordinate.WIDTH,
+            }));
+
+            item.child.add_child(indicator);
+            item.child._dashInPanelIndicator = indicator;
         }
 
         _setDotsOpacity() {
@@ -125,9 +161,9 @@ const DashPanel = GObject.registerClass(
                 let app_is_on_active_workspace = item.child?.app?.is_on_workspace(activeWorkspace);
 
                 if (app_is_on_active_workspace)
-                    item.child?.remove_style_class_name('dash-in-panel-inactive-running-app');
+                    item.child?._dashInPanelIndicator?.remove_style_class_name('dash-in-panel-inactive-running-indicator');
                 else
-                    item.child?.add_style_class_name('dash-in-panel-inactive-running-app');
+                    item.child?._dashInPanelIndicator?.add_style_class_name('dash-in-panel-inactive-running-indicator');
             }
         }
 
@@ -139,10 +175,10 @@ const DashPanel = GObject.registerClass(
 
             item.child._dot.visible = false;
             if (appIsRunning)
-                item.child.add_style_class_name('dash-in-panel-running-app');
+                item.child._dashInPanelIndicator?.show();
             else {
-                item.child.remove_style_class_name('dash-in-panel-running-app');
-                item.child.remove_style_class_name('dash-in-panel-inactive-running-app');
+                item.child._dashInPanelIndicator?.hide();
+                item.child._dashInPanelIndicator?.remove_style_class_name('dash-in-panel-inactive-running-indicator');
             }
         }
 
@@ -153,7 +189,7 @@ const DashPanel = GObject.registerClass(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
 
                 if (appHasFocus) {
-                    item.child?.remove_style_class_name('dash-in-panel-inactive-running-app');
+                    item.child?._dashInPanelIndicator?.remove_style_class_name('dash-in-panel-inactive-running-indicator');
                 }
             }
         }
