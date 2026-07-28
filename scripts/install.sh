@@ -31,6 +31,20 @@ download() {
 
 need_command gnome-extensions
 
+if [[ -n "${XDG_DATA_HOME:-}" ]]; then
+  user_data_dir="$XDG_DATA_HOME"
+else
+  user_home_dir="$(getent passwd "$(id -u)" | cut -d: -f6)"
+  [[ -n "$user_home_dir" ]] || die "could not determine the user home directory"
+  user_data_dir="${user_home_dir}/.local/share"
+fi
+
+extension_dir="${user_data_dir}/gnome-shell/extensions/${UUID}"
+if [[ -L "$extension_dir" ]]; then
+  printf 'Removing development symlink %s\n' "$extension_dir"
+  unlink -- "$extension_dir"
+fi
+
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 

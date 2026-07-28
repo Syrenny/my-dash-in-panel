@@ -117,6 +117,12 @@ const DashPanel = GObject.registerClass(
                 'assets',
                 'ubuntu-logo-symbolic.svg',
             ]));
+            if (!iconFile.query_exists(null)) {
+                iconFile = Gio.File.new_for_path(GLib.build_filenamev([
+                    this._extensionPath,
+                    'ubuntu-logo-symbolic.svg',
+                ]));
+            }
             let gicon = Gio.FileIcon.new(iconFile);
 
             this._showAppsIcon.icon.createIcon = size => new St.Icon({
