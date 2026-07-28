@@ -17,7 +17,20 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const DEFAULT_PANEL_HEIGHT = 32;
 const RUNNING_INDICATOR_HEIGHT = 3;
-const INACTIVE_WORKSPACE_INDICATOR_OPACITY = 168;
+const FOCUSED_INDICATOR_HEIGHT = 4;
+const RUNNING_INDICATOR_OPACITY = 168;
+const INACTIVE_WORKSPACE_INDICATOR_OPACITY = 96;
+const ACCENT_COLORS = {
+    blue: '#3584e4',
+    teal: '#2190a4',
+    green: '#3a944a',
+    yellow: '#c88800',
+    orange: '#ed5b00',
+    red: '#e62d42',
+    pink: '#d56199',
+    purple: '#9141ac',
+    slate: '#6f8396',
+};
 
 const DashPanel = GObject.registerClass(
     class DashPanel extends Dash.Dash {
@@ -26,6 +39,8 @@ const DashPanel = GObject.registerClass(
 
             this._settings = settings;
             this._extensionPath = extensionPath;
+            this._accentColor = ACCENT_COLORS.blue;
+            this._watchAccentColor();
 
             this.remove_child(this._dashContainer);
 
@@ -135,24 +150,36 @@ const DashPanel = GObject.registerClass(
                 return;
 
             item.child._dot.width = item.child.icon?.width || this.iconSize;
-            item.child._dot.height = RUNNING_INDICATOR_HEIGHT;
+            item.child._dot.height = item.child._dot.has_style_class_name('dash-in-panel-focused-indicator')
+                ? FOCUSED_INDICATOR_HEIGHT
+                : RUNNING_INDICATOR_HEIGHT;
             item.child._dot.add_style_class_name('dash-in-panel-running-indicator');
+            item.child._dot.set_style(`background-color: ${this._accentColor};`);
+        }
+
+        _watchAccentColor() {
+            let schema = Gio.SettingsSchemaSource.get_default()?.lookup('org.gnome.desktop.interface', true);
+            if (!schema?.has_key('accent-color'))
+                return;
+
+            this._interfaceSettings = new Gio.Settings({settings_schema: schema});
+            this._interfaceSettings.connectObject('changed::accent-color', () => {
+                this._syncAccentColor();
+                this._onFocusWindowChanged();
+            }, this);
+            this._syncAccentColor();
+        }
+
+        _syncAccentColor() {
+            let accentName = this._interfaceSettings?.get_string('accent-color');
+            this._accentColor = ACCENT_COLORS[accentName] ?? ACCENT_COLORS.blue;
+
+            for (let item of this._dashContainer?.last_child?.get_children() ?? [])
+                item.child?._dot?.set_style(`background-color: ${this._accentColor};`);
         }
 
         _setDotsOpacity() {
-            let activeWorkspace = global.workspace_manager.get_active_workspace();
-
-            for (let item of this._dashContainer.last_child?.get_children()) {
-                if (item.child?.app?.state !== Shell.AppState.RUNNING)
-                    continue;
-
-                let app_is_on_active_workspace = item.child?.app?.is_on_workspace(activeWorkspace);
-
-                if (app_is_on_active_workspace)
-                    item.child?._dot?.set_opacity(255);
-                else
-                    item.child?._dot?.set_opacity(INACTIVE_WORKSPACE_INDICATOR_OPACITY);
-            }
+            this._onFocusWindowChanged();
         }
 
         _syncRunningIndicator(item) {
@@ -166,13 +193,27 @@ const DashPanel = GObject.registerClass(
         }
 
         _onFocusWindowChanged() {
+            let activeWorkspace = global.workspace_manager.get_active_workspace();
+
             for (let item of this._dashContainer.last_child?.get_children()) {
-                let activeWorkspace = global.workspace_manager.get_active_workspace();
                 let appHasFocus = item.child?.app?.get_windows().some(
                     window => window.appears_focused && window.located_on_workspace(activeWorkspace));
+                let appIsOnActiveWorkspace = item.child?.app?.is_on_workspace(activeWorkspace);
+                let dot = item.child?._dot;
+
+                if (!dot)
+                    continue;
 
                 if (appHasFocus) {
-                    item.child?._dot?.set_opacity(255);
+                    dot.add_style_class_name('dash-in-panel-focused-indicator');
+                    dot.height = FOCUSED_INDICATOR_HEIGHT;
+                    dot.set_opacity(255);
+                } else {
+                    dot.remove_style_class_name('dash-in-panel-focused-indicator');
+                    dot.height = RUNNING_INDICATOR_HEIGHT;
+                    dot.set_opacity(this._settings.get_boolean('dim-dot') && !appIsOnActiveWorkspace
+                        ? INACTIVE_WORKSPACE_INDICATOR_OPACITY
+                        : RUNNING_INDICATOR_OPACITY);
                 }
             }
         }
